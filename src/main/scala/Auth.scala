@@ -1,11 +1,16 @@
 package lila.ws
 
+import com.typesafe.config.Config
 import reactivemongo.api.bson._
-import scala.concurrent.{ ExecutionContext, Future }
 
+import scala.concurrent.{ExecutionContext, Future}
 import util.RequestHeader
 
-final class Auth(mongo: Mongo, seenAt: SeenAtUpdate)(implicit executionContext: ExecutionContext) {
+final class Auth(
+    config: Config,
+    mongo: Mongo,
+    seenAt: SeenAtUpdate
+)(implicit executionContext: ExecutionContext) {
 
   def apply(req: RequestHeader): Future[Option[User]] =
     if (req.flag contains Flag.api) Future successful None
@@ -33,7 +38,7 @@ final class Auth(mongo: Mongo, seenAt: SeenAtUpdate)(implicit executionContext: 
       case None => Future successful None
     }
 
-  private val cookieName = "lila2"
+  private val cookieName = config.getString("http.cookieName")
   private val sessionIdKey = "sessionId"
   private val sessionIdRegex = s"""$sessionIdKey=(\\w+)""".r.unanchored
   private val sidKey = "sid"
