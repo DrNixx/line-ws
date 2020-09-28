@@ -5,22 +5,21 @@ import akka.actor.typed.{ Behavior, PostStop }
 
 import ipc._
 
-object ChallengeClientActor {
+object SwissClientActor {
 
   import ClientActor._
 
   case class State(
-      owner: Boolean,
       room: RoomActor.State,
       site: ClientActor.State = ClientActor.State()
   )
 
-  def start(roomState: RoomActor.State, owner: Boolean, fromVersion: Option[SocketVersion])(
+  def start(roomState: RoomActor.State, fromVersion: Option[SocketVersion])(
       deps: Deps
   ): Behavior[ClientMsg] =
     Behaviors.setup { ctx =>
       RoomActor.onStart(roomState, fromVersion, deps, ctx)
-      apply(State(owner, roomState), deps)
+      apply(State(roomState), deps)
     }
 
   private def apply(state: State, deps: Deps): Behavior[ClientMsg] =
@@ -36,23 +35,14 @@ object ChallengeClientActor {
               case Some(s) => apply(state.copy(site = s), deps)
             }
 
-          case ClientCtrl.Disconnect =>
-            // lila tries to close the round room, because there's no game with that ID yet
-            // ignore it so we stay connected to the challenge
-            Behaviors.same
-
           case ClientCtrl.Broom(oldSeconds) =>
             if (state.site.lastPing < oldSeconds) Behaviors.stopped
             else {
-              keepAlive challenge state.room.id
+              keepAlive.swiss(state.room.id)
               Behaviors.same
             }
 
           case ctrl: ClientCtrl => socketControl(state.site, deps, ctrl)
-
-          case ClientOut.ChallengePing =>
-            if (state.owner) services.challengePing(state.room.id)
-            Behaviors.same
 
           // default receive (site)
           case msg: ClientOutSite =>
@@ -61,12 +51,12 @@ object ChallengeClientActor {
             else apply(state.copy(site = siteState), deps)
 
           case _ =>
-            Monitor.clientOutUnhandled("challenge").increment()
+            Monitor.clientOutUnhandled("swiss").increment()
             Behaviors.same
         }
 
         RoomActor.receive(state.room, deps).lift(msg).fold(receive(msg)) { case (newState, emit) =>
-          emit foreach lilaIn.challenge.apply
+          emit foreach lilaIn.swiss
           newState.fold(Behaviors.same[ClientMsg]) { roomState =>
             apply(state.copy(room = roomState), deps)
           }

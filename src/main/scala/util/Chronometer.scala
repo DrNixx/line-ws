@@ -1,7 +1,7 @@
 package lila.ws.util
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.{ ExecutionContext, Future }
 
 object Chronometer {
 
@@ -28,7 +28,7 @@ object Chronometer {
       if (nanos > duration.toNanos) pp(msg)
       else result
 
-    def showDuration: String = if (millis >= 1) f"$millis%.2f ms" else s"$micros micros"
+    def showDuration: String = if (millis >= 1) f"$millis ms" else s"$micros micros"
   }
 
   case class FuLap[A](lap: Future[Lap[A]]) extends AnyVal {
@@ -38,9 +38,10 @@ object Chronometer {
       this
     }
 
-    def pp(implicit ec: ExecutionContext): Future[A] = lap map (_.pp)
+    def pp(implicit ec: ExecutionContext): Future[A]              = lap map (_.pp)
     def pp(msg: String)(implicit ec: ExecutionContext): Future[A] = lap map (_ pp msg)
-    def ppIfGt(msg: String, duration: FiniteDuration)(implicit ec: ExecutionContext): Future[A] = lap map (_.ppIfGt(msg, duration))
+    def ppIfGt(msg: String, duration: FiniteDuration)(implicit ec: ExecutionContext): Future[A] =
+      lap map (_.ppIfGt(msg, duration))
 
     def result(implicit ec: ExecutionContext) = lap.map(_.result)
   }
@@ -52,7 +53,7 @@ object Chronometer {
 
   def sync[A](f: => A): Lap[A] = {
     val start = nowNanos
-    val res = f
+    val res   = f
     Lap(res, nowNanos - start)
   }
 

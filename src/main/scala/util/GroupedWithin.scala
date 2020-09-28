@@ -17,25 +17,29 @@ final class GroupedWithinStage[A](
     nb: Int,
     interval: FiniteDuration,
     emit: Emit[Vector[A]]
-)(implicit scheduler: Scheduler, ec: ExecutionContext) {
+)(implicit
+    scheduler: Scheduler,
+    ec: ExecutionContext
+) {
 
   private val buffer: VectorBuilder[A] = new VectorBuilder
 
-  private var scheduledFlush: Cancellable = scheduler.scheduleOnce(interval, () => flush)
+  private var scheduledFlush: Cancellable = scheduler.scheduleOnce(interval, flush _)
 
-  def apply(elem: A): Unit = synchronized {
-    buffer += elem
-    if (buffer.size >= nb) unsafeFlush
-  }
-
-  private def flush: Unit = synchronized { unsafeFlush }
-
-  private def unsafeFlush: Unit = {
-    if (buffer.nonEmpty) {
-      emit(buffer.result)
-      buffer.clear
+  def apply(elem: A): Unit =
+    synchronized {
+      buffer += elem
+      if (buffer.size >= nb) unsafeFlush()
     }
-    scheduledFlush.cancel
-    scheduledFlush = scheduler.scheduleOnce(interval, () => flush)
+
+  private def flush(): Unit = synchronized { unsafeFlush() }
+
+  private def unsafeFlush(): Unit = {
+    if (buffer.nonEmpty) {
+      emit(buffer.result())
+      buffer.clear()
+    }
+    scheduledFlush.cancel()
+    scheduledFlush = scheduler.scheduleOnce(interval, flush _)
   }
 }
