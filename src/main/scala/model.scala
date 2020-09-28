@@ -1,6 +1,7 @@
 package lila.ws
 
 import chess.Color
+import chess.format.{ FEN, Uci }
 
 trait StringValue extends Any {
   def value: String
@@ -22,7 +23,7 @@ object Game {
     def full(playerId: PlayerId) = FullId(s"$value$playerId")
   }
   case class FullId(value: String) extends AnyVal with StringValue {
-    def gameId = Id(value take 8)
+    def gameId   = Id(value take 8)
     def playerId = PlayerId(value drop 8)
   }
   case class PlayerId(value: String) extends AnyVal with StringValue
@@ -31,13 +32,29 @@ object Game {
 
   // must only contain invariant data (no status, turns, or termination)
   // because it's cached in Mongo.scala
-  case class Round(id: Id, players: Color.Map[Player], tourId: Option[Tour.ID]) {
-    def player(id: PlayerId, userId: Option[User.ID]): Option[RoundPlayer] = Color.all.collectFirst {
-      case c if players(c).id == id && players(c).userId == userId => RoundPlayer(id, c, tourId)
-    }
+  case class Round(id: Id, players: Color.Map[Player], ext: Option[RoundExt]) {
+    def player(id: PlayerId, userId: Option[User.ID]): Option[RoundPlayer] =
+      Color.all.collectFirst {
+        case c if players(c).id == id && players(c).userId == userId => RoundPlayer(id, c, ext)
+      }
   }
 
-  case class RoundPlayer(id: PlayerId, color: Color, tourId: Option[Tour.ID])
+  case class RoundPlayer(
+      id: PlayerId,
+      color: Color,
+      ext: Option[RoundExt]
+  ) {
+    def tourId  = ext collect { case RoundExt.Tour(id) => id }
+    def swissId = ext collect { case RoundExt.Swiss(id) => id }
+    def simulId = ext collect { case RoundExt.Simul(id) => id }
+  }
+
+  sealed abstract trait RoundExt { val id: String }
+  object RoundExt {
+    case class Tour(id: String)  extends RoundExt
+    case class Swiss(id: String) extends RoundExt
+    case class Simul(id: String) extends RoundExt
+  }
 }
 
 object Simul {
@@ -62,11 +79,20 @@ object Chat {
   type ID = String
 }
 
+object Team {
+  type ID = String
+}
+
+object Swiss {
+  type ID = String
+}
+
 object Challenge {
   case class Id(value: String) extends AnyVal with StringValue
   sealed trait Challenger
   case class Anon(secret: String) extends Challenger
   case class User(userId: String) extends Challenger
+  case object Open                extends Challenger
 }
 
 case class Chat(id: Chat.ID) extends AnyVal
@@ -84,10 +110,11 @@ object Sri {
 case class Flag private (value: String) extends AnyVal with StringValue
 
 object Flag {
-  def make(value: String) = value match {
-    case "simul" | "tournament" | "api" => Some(Flag(value))
-    case _ => None
-  }
+  def make(value: String) =
+    value match {
+      case "simul" | "tournament" | "api" => Some(Flag(value))
+      case _                              => None
+    }
   val api = Flag("api")
 }
 
@@ -123,4 +150,9 @@ case class RoundEventFlags(
     troll: Boolean
 )
 
-case class UserTv(value: String) extends AnyVal with StringValue
+case class UserTv(value: User.ID) extends AnyVal with StringValue
+
+case class Clock(white: Int, black: Int)
+case class Position(lastUci: Uci, fen: FEN, clock: Option[Clock], turnColor: Color) {
+  def fenWithColor = s"$fen ${turnColor.letter}"
+}

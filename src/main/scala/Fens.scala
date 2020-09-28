@@ -1,15 +1,15 @@
 package lila.ws
 
 import akka.actor.typed.ActorRef
+import chess.Color
 import chess.format.{ FEN, Uci }
 import java.util.concurrent.ConcurrentHashMap
-
-import ipc._
+import lila.ws.ipc._
+import lila.ws.{ Clock, Position }
 
 /* Manages subscriptions to FEN updates */
 object Fens {
 
-  case class Position(lastUci: Uci, fen: FEN)
   case class Watched(position: Option[Position], clients: Set[ActorRef[ClientMsg]])
 
   private val games = new ConcurrentHashMap[Game.Id, Watched](1024)
@@ -17,39 +17,68 @@ object Fens {
   // client starts watching
   def watch(gameIds: Iterable[Game.Id], client: Client): Unit =
     gameIds foreach { gameId =>
-      games.compute(gameId, {
-        case (_, null) => Watched(None, Set(client))
-        case (_, Watched(pos, clients)) => Watched(pos, clients + client)
-      }).position foreach {
-        case Position(lastUci, fen) => client ! ClientIn.Fen(gameId, lastUci, fen)
+      games
+        .compute(
+          gameId,
+          {
+            case (_, null)                  => Watched(None, Set(client))
+            case (_, Watched(pos, clients)) => Watched(pos, clients + client)
+          }
+        )
+        .position foreach { p =>
+        client ! ClientIn.Fen(gameId, p)
       }
     }
 
   // when a client disconnects
   def unwatch(gameIds: Iterable[Game.Id], client: Client): Unit =
     gameIds foreach { gameId =>
-      games.computeIfPresent(gameId, (_, watched) => {
-        val newClients = watched.clients - client
-        if (newClients.isEmpty) null
-        else watched.copy(clients = newClients)
-      })
+      games.computeIfPresent(
+        gameId,
+        (_, watched) => {
+          val newClients = watched.clients - client
+          if (newClients.isEmpty) null
+          else watched.copy(clients = newClients)
+        }
+      )
     }
 
-  // move coming from the server
-  def move(gameId: Game.Id, json: JsonString): Unit = {
-    games.computeIfPresent(gameId, (_, watched) => json.value match {
-      case MoveRegex(uciS, fenS) => Uci(uciS).fold(watched) { lastUci =>
-        val fen = FEN(fenS)
-        val msg = ClientIn.Fen(gameId, lastUci, fen)
-        watched.clients foreach { _ ! msg }
-        watched.copy(position = Some(Position(lastUci, fen)))
+  // a game finishes
+  def finish(gameId: Game.Id, winner: Option[Color]) =
+    games.computeIfPresent(
+      gameId,
+      (_, watched) => {
+        watched.clients foreach { _ ! ClientIn.Finish(gameId, winner) }
+        null
       }
-      case _ => watched
-    })
-  }
+    )
 
-  // ...,"uci":"h2g2","san":"Rg2","fen":"r2qb1k1/p2nbrpn/6Np/3pPp1P/1ppP1P2/2P1B3/PP2B1R1/R2Q1NK1",...
-  private val MoveRegex = """uci":"([^"]+)".+fen":"([^"]+)""".r.unanchored
+  // move coming from the server
+  def move(gameId: Game.Id, json: JsonString, moveBy: Option[Color]): Unit =
+    games.computeIfPresent(
+      gameId,
+      (_, watched) => {
+        val turnColor = moveBy.fold(Color.white)(c => !c)
+        (json.value match {
+          case MoveClockRegex(uciS, fenS, wcS, bcS) =>
+            for {
+              uci <- Uci(uciS)
+              wc  <- wcS.toIntOption
+              bc  <- bcS.toIntOption
+            } yield Position(uci, FEN(fenS), Some(Clock(wc, bc)), turnColor)
+          case MoveRegex(uciS, fenS) => Uci(uciS) map { Position(_, FEN(fenS), None, turnColor) }
+          case _                     => None
+        }).fold(watched) { position =>
+          val msg = ClientIn.Fen(gameId, position)
+          watched.clients foreach { _ ! msg }
+          watched.copy(position = Some(position))
+        }
+      }
+    )
+
+  // ...,"uci":"h2g2","san":"Rg2","fen":"r2qb1k1/p2nbrpn/6Np/3pPp1P/1ppP1P2/2P1B3/PP2B1R1/R2Q1NK1",...,"clock":{"white":121.88,"black":120.94}
+  private val MoveRegex      = """uci":"([^"]+)".+fen":"([^"]+)""".r.unanchored
+  private val MoveClockRegex = """uci":"([^"]+)".+fen":"([^"]+).+white":(\d+).+black":(\d+)""".r.unanchored
 
   def size = games.size
 }

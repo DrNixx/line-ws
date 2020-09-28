@@ -15,10 +15,10 @@ object RoomActor {
   )
 
   def onStart(
-    state: State,
-    fromVersion: Option[SocketVersion],
-    deps: Deps,
-    ctx: ActorContext[ClientMsg]
+      state: State,
+      fromVersion: Option[SocketVersion],
+      deps: Deps,
+      ctx: ActorContext[ClientMsg]
   ): Unit = {
     import deps._
     ClientActor.onStart(deps, ctx)
@@ -26,7 +26,7 @@ object RoomActor {
     Bus.subscribe(Bus.channel room state.id, ctx.self)
     roomCrowd.connect(state.id, req.user)
     History.room.getFrom(state.id, fromVersion) match {
-      case None => clientIn(ClientIn.Resync)
+      case None         => clientIn(ClientIn.Resync)
       case Some(events) => events map { versionFor(state.isTroll, _) } foreach clientIn
     }
   }
@@ -40,7 +40,10 @@ object RoomActor {
     if (!msg.troll.value || isTroll.value) msg.full
     else msg.skip
 
-  def receive(state: State, deps: Deps): PartialFunction[ClientMsg, (Option[State], Option[LilaIn.AnyRoom])] = {
+  def receive(
+      state: State,
+      deps: Deps
+  ): PartialFunction[ClientMsg, (Option[State], Option[LilaIn.AnyRoom])] = {
 
     case versioned: ClientIn.Versioned =>
       deps.clientIn(versionFor(state.isTroll, versioned))
@@ -52,22 +55,19 @@ object RoomActor {
 
     case crowd: ClientIn.Crowd =>
       if (crowd == state.lastCrowd) None -> None
-      else Some {
-        deps.clientIn(crowd)
-        state.copy(lastCrowd = crowd)
-      } -> None
+      else
+        Some {
+          deps.clientIn(crowd)
+          state.copy(lastCrowd = crowd)
+        } -> None
 
     case SetTroll(v) =>
       Some(state.copy(isTroll = v)) -> None
 
     case ClientOut.ChatSay(msg) =>
-      None -> deps.req.user.map { u =>
-        LilaIn.ChatSay(state.id, u.id, msg)
-      }
+      None -> deps.req.user.map { u => LilaIn.ChatSay(state.id, u.id, msg) }
 
-    case ClientOut.ChatTimeout(suspect, reason) =>
-      None -> deps.req.user.map { u =>
-        LilaIn.ChatTimeout(state.id, u.id, suspect, reason)
-      }
+    case ClientOut.ChatTimeout(suspect, reason, text) =>
+      None -> deps.req.user.map { u => LilaIn.ChatTimeout(state.id, u.id, suspect, reason, text) }
   }
 }
