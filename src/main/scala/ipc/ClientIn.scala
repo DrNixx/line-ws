@@ -233,7 +233,7 @@ object ClientIn {
       def write =
         Json stringify Json.obj(
           "t"       -> "following_onlines",
-          "d"       -> users.map(_.data.titleName),
+          "d"       -> users.map(_.data.idVsTitleName),
           "playing" -> users.collect { case u if u.meta.playing => u.id },
           "patrons" -> users.collect { case u if u.data.patron => u.id }
         )
@@ -243,7 +243,7 @@ object ClientIn {
       def write =
         Json stringify Json.obj(
           "t" -> "following_enters",
-          "d" -> user.data.titleName
+          "d" -> user.data.idVsTitleName
         ) ++ {
           if (user.data.patron) Json.obj("patron" -> true)
           else Json.obj()
