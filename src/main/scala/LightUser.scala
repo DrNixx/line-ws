@@ -27,7 +27,7 @@ final class LightUserApi(mongo: Mongo)(implicit executionContext: ExecutionConte
           for {
             doc  <- docOpt
             name <- doc.getAsOpt[String]("username")
-          } yield doc.getAsOpt[String]("title").fold(name)(_ + " " + name)
+          } yield doc.getAsOpt[String]("title").fold(id + "/" + name)(id + "/" + _ + " " + name)
         } getOrElse id
       }
     }
