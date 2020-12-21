@@ -6,25 +6,25 @@ lazy val `lila-ws` = (project in file("."))
   .enablePlugins(JavaAppPackaging)
 
 val akkaVersion          = "2.6.10"
-val kamonVersion         = "2.1.7"
-val nettyVersion         = "4.1.52.Final"
-val reactivemongoVersion = "1.0.0"
+val kamonVersion         = "2.1.9"
+val nettyVersion         = "4.1.56.Final"
+val reactivemongoVersion = "1.0.1"
 
 scalaVersion := "2.13.3"
 
 libraryDependencies += "org.reactivemongo"          %% "reactivemongo"                % reactivemongoVersion
 libraryDependencies += "org.reactivemongo"          %% "reactivemongo-bson-api"       % reactivemongoVersion
 libraryDependencies += "org.reactivemongo"           % "reactivemongo-shaded-native"  % s"$reactivemongoVersion-linux-x86-64"
-libraryDependencies += "io.lettuce"                  % "lettuce-core"                 % "5.3.4.RELEASE"
+libraryDependencies += "io.lettuce"                  % "lettuce-core"                 % "5.3.5.RELEASE"
 libraryDependencies += "io.netty"                    % "netty-handler"                % nettyVersion
 libraryDependencies += "io.netty"                    % "netty-codec-http"             % nettyVersion
 libraryDependencies += "io.netty"                    % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64"
-libraryDependencies += "org.lichess"                %% "scalachess"                   % "10.0.4"
+libraryDependencies += "org.lichess"                %% "scalachess"                   % "10.1.1"
 libraryDependencies += "com.typesafe.akka"          %% "akka-actor-typed"             % akkaVersion
 libraryDependencies += "com.typesafe.akka"          %% "akka-slf4j"                   % akkaVersion
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging"                % "3.9.2"
-libraryDependencies += "joda-time"                   % "joda-time"                    % "2.10.6"
-libraryDependencies += "com.github.blemale"         %% "scaffeine"                    % "4.0.1" % "compile"
+libraryDependencies += "joda-time"                   % "joda-time"                    % "2.10.8"
+libraryDependencies += "com.github.blemale"         %% "scaffeine"                    % "4.0.2" % "compile"
 libraryDependencies += "ch.qos.logback"              % "logback-classic"              % "1.2.3"
 libraryDependencies += "com.typesafe.play"          %% "play-json"                    % "2.9.1"
 libraryDependencies += "io.kamon"                   %% "kamon-core"                   % kamonVersion
@@ -72,6 +72,8 @@ scalacOptions ++= Seq(
   "-Wunused:params"
   /* "-Wvalue-discard" */
 )
+
+javaOptions ++= Seq("-Xms32m", "-Xmx128m")
 
 sources in (Compile, doc) := Seq.empty
 
