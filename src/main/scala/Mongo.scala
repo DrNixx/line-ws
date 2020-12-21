@@ -172,7 +172,7 @@ final class Mongo(config: Config)(implicit executionContext: ExecutionContext) {
     }
 
   private val userDataProjection =
-    BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> false)
+    BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> true)
   private def userDataReader(doc: BSONDocument) =
     for {
       id <- doc.getAsOpt[User.ID]("_id")
