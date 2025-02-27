@@ -238,13 +238,14 @@ final class Mongo(config: Config)(using Executor) extends MongoHandlers:
       )
 
   private val userDataProjection =
-    BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> false)
+    BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> true)
   private def userDataReader(doc: BSONDocument) =
     for
+      id <- doc.getAsOpt[User.Id]("_id")
       name <- doc.getAsOpt[User.Name]("username")
       title  = doc.getAsOpt[User.Title]("title")
       patron = doc.child("plan").flatMap(_.getAsOpt[User.Patron]("active")).getOrElse(User.Patron(false))
-    yield FriendList.UserData(name, title, patron)
+    yield FriendList.UserData(id, Option(name), title, patron)
 
   def loadFollowed(userId: User.Id): Future[Iterable[User.Id]] =
     relationColl.flatMap:

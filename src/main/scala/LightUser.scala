@@ -23,7 +23,6 @@ final class LightUserApi(mongo: Mongo)(using Executor):
       ).one[BSONDocument].map { docOpt =>
         val name = for
           doc  <- docOpt
-          name <- doc.getAsOpt[User.Name]("username")
-        yield User.TitleName(name, doc.getAsOpt[User.Title]("title"))
+        yield User.TitleName(id, doc.getAsOpt[User.Name]("username"), doc.getAsOpt[User.Title]("title"))
         name.getOrElse(id.into(User.TitleName))
       }

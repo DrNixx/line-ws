@@ -13,8 +13,9 @@ object User:
   object Title extends OpaqueString[Title]
   opaque type TitleName = String
   object TitleName extends OpaqueString[TitleName]:
-    def apply(name: Name, title: Option[Title]): TitleName =
-      TitleName(title.fold(name.value)(_.value + " " + name.value))
+    def apply(id: Id, name: Option[Name], title: Option[Title]): TitleName =
+      val resolvedName = name.getOrElse(id.toString)
+      TitleName(title.fold(id + "/" + resolvedName)(id + "/" + _ + " " + resolvedName))
   opaque type Patron = Boolean
   object Patron extends YesNo[Patron]
 
