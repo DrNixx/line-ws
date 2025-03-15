@@ -21,8 +21,8 @@ final class LightUserApi(mongo: Mongo)(using Executor):
         BSONDocument("_id" -> id),
         Some(BSONDocument("username" -> true, "title" -> true))
       ).one[BSONDocument].map { docOpt =>
-        val name = for
-          doc  <- docOpt
-        yield User.TitleName(id, doc.getAsOpt[User.Name]("username"), doc.getAsOpt[User.Title]("title"))
+        val name =
+          for doc <- docOpt
+          yield User.TitleName(id, doc.getAsOpt[User.Name]("username"), doc.getAsOpt[User.Title]("title"))
         name.getOrElse(id.into(User.TitleName))
       }

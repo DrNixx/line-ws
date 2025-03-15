@@ -241,7 +241,7 @@ final class Mongo(config: Config)(using Executor) extends MongoHandlers:
     BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> true)
   private def userDataReader(doc: BSONDocument) =
     for
-      id <- doc.getAsOpt[User.Id]("_id")
+      id   <- doc.getAsOpt[User.Id]("_id")
       name <- doc.getAsOpt[User.Name]("username")
       title  = doc.getAsOpt[User.Title]("title")
       patron = doc.child("plan").flatMap(_.getAsOpt[User.Patron]("active")).getOrElse(User.Patron(false))
