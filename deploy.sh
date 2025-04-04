@@ -6,13 +6,13 @@ stage="target/universal/stage"
 
 echo "Deploy lila-ws to server $REMOTE:$REMOTE_DIR"
 
-rm -rf $stage
-sbt stage
+#rm -rf $stage
+#sbt stage
 
-if [ $? != 0 ]; then
-  echo "Deploy canceled"
-  exit 1
-fi
+#if [ $? != 0 ]; then
+#  echo "Deploy canceled"
+#  exit 1
+#fi
 
 RSYNC_OPTIONS=" \
   --archive \

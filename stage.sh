@@ -1,6 +1,6 @@
 #!/bin/sh
 
-APP=lila-ws-2.0
+APP=lila-ws-3.3
 
 package_dir="target/universal"
 package="$package_dir/$APP"
