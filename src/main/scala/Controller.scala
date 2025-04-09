@@ -275,7 +275,9 @@ final class Controller(
       "ionic://localhost",     // ios
       "capacitor://localhost", // capacitor (ios next)
       "http://localhost",      // android
-      "http://localhost:8080"  // local app dev
+      "https://localhost",     // yandex
+      "http://localhost:8080", // local app dev
+      "https://localhost:8080" // yandex
     )
     val apiOrigins   = Set("https://www.lichess4545.com")
     val yandexOrigin = "https://app-218606.games"
