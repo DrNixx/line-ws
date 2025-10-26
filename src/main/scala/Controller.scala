@@ -281,11 +281,12 @@ final class Controller(
     )
     val apiOrigins   = Set("https://www.lichess4545.com")
     val yandexOrigin = "https://app-218606.games"
+    val fridayOrigin = "https://games.friday.ru"
 
     def check(req: RequestHeader)(f: => Response): Response =
       req.origin match
         case None => f // for exotic clients and acid ape chess
-        case Some(origin) if origin == csrfOrigin || appOrigins(origin) || origin.startsWith(yandexOrigin) =>
+        case Some(origin) if origin == csrfOrigin || appOrigins(origin) || origin.startsWith(yandexOrigin) || origin.startsWith(fridayOrigin) =>
           f
         case _ => block(req)
 
