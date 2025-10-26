@@ -286,7 +286,9 @@ final class Controller(
     def check(req: RequestHeader)(f: => Response): Response =
       req.origin match
         case None => f // for exotic clients and acid ape chess
-        case Some(origin) if origin == csrfOrigin || appOrigins(origin) || origin.startsWith(yandexOrigin) || origin.startsWith(fridayOrigin) =>
+        case Some(origin)
+            if origin == csrfOrigin || appOrigins(origin) || origin.startsWith(yandexOrigin) || origin
+              .startsWith(fridayOrigin) =>
           f
         case _ => block(req)
 
